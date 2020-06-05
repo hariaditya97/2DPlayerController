@@ -1,0 +1,252 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System;
+
+public class DracoController : MonoBehaviour      //You should change name to PlayerController
+{
+    private Rigidbody2D rb;
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
+    private enum State { idle, running, jumping, landing, hurt, attack, dead };
+    private State state = State.idle;
+    private Collider2D collider;
+    public Transform attackPoint;
+    public float attackRange = 0.1f;
+    [SerializeField] private LayerMask Ground;
+    [SerializeField] private LayerMask enemyLayers;
+    public int currentHealth = 100;                                                    
+    public Text Health;
+
+
+    // PHYSICS PARAMETERS
+    public float speed = 4.0f;
+    public float jumpSpeed = 2.0f;
+    private float attackTimer = 0.0f;
+    private float hurtTimer = 0.0f;
+    private float deathTimer = 18.0f;
+    //private bool isDead = false;
+    //private float jumpdirection = 1.0f;
+    //private int maxHealth = 100;
+    
+
+
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+        collider = GetComponent<Collider2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    private void FixedUpdate()
+    {
+        Debug.Log(currentHealth);
+        if (currentHealth <= 0)
+		{
+            state = State.dead;
+            Debug.Log("Draco is dead!");
+            deathTimer -= 1.0f;
+            if (deathTimer == 0.0f)
+            {
+                Destroy(gameObject);
+                GameOver();
+            }
+            
+		}
+
+        // Health UI
+        Health.text = currentHealth.ToString();
+        if (currentHealth > 0)
+        {
+            if (state != State.attack && state != State.hurt)
+            {
+                Movement();
+            }
+
+            MovementState();
+        }
+
+        animator.SetInteger("state", (int)state);
+
+    }
+
+    private void Movement()
+    {
+        if (Input.GetKey("right"))
+        {
+           rb.velocity = new Vector2(speed, rb.velocity.y);
+           spriteRenderer.flipX = false;
+        }
+
+        else if (Input.GetKey("left"))
+        {
+            rb.velocity = new Vector2(-speed, rb.velocity.y);
+            spriteRenderer.flipX = true;
+        }
+
+        else
+        {
+            state = State.idle;
+        }
+
+        if (Input.GetButton("Jump") && collider.IsTouchingLayers(Ground))
+		{
+            Jump();
+            state = State.jumping;
+		}
+
+        if (Input.GetKeyDown(KeyCode.F) && collider.IsTouchingLayers(Ground))
+        {
+            state = State.attack;
+            attackTimer = 20.0f;
+            AttackMove();
+        }
+
+    }
+
+    private void Jump()
+	{
+        rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+        //state = State.jumping;
+    }
+
+    private void MovementState()
+	{
+        // Horizontal Movement
+        if (Mathf.Abs(rb.velocity.x) > 2.0f && collider.IsTouchingLayers(Ground) && state != State.hurt)
+        {
+            if (state != State.attack)
+            {
+                state = State.running;
+            }
+
+        }
+
+        else if (rb.velocity.y > 0.1f)
+        {
+            state = State.jumping;
+        }
+
+        else if (state == State.attack)
+		{
+            attackTimer -= 1.0f;
+            if (attackTimer == 0.0f)
+            {
+                state = State.idle;
+                Movement();
+            }
+            
+        }
+
+        else if (state == State.hurt)
+        {
+            hurtTimer -= 1.0f;
+            if (hurtTimer == 0.0f)
+            {
+                state = State.idle;
+            }
+        }
+
+        else if (rb.velocity.y < 0.01f)
+        {
+            state = State.landing;
+
+            if (collider.IsTouchingLayers(Ground))
+            {
+                state = State.idle;
+            }
+        }
+
+        else 
+        {
+            state = State.idle;
+        }
+    }
+
+    private void AttackMove()
+	{
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers); //since new array is being created in every frame 
+
+        foreach(Collider2D enemy in hitEnemies)
+		{
+            if (enemy.name == "Skeleton")
+			{
+                enemy.GetComponent<SkeletonController>().TakeDamage(100);
+                Debug.Log("Skeleton damaged!");
+            }
+
+            else if (enemy.name == "Gato")
+			{
+                enemy.GetComponent<GatoController>().TakeDamage(100);
+                Debug.Log("Gato damaged!");
+            }
+
+            else if (enemy.name == "Ghost")
+			{
+                enemy.GetComponent<GhostController>().TakeDamage(100);
+                Debug.Log("Ghost damaged!");
+            }
+
+            else if (enemy.name == "Ghost Halo")
+            {
+                enemy.GetComponent<GhostHalo>().TakeDamage(100);
+                Debug.Log("Ghost Halo damaged!");
+            }
+
+        }
+        
+	}
+
+    private void OnCollisionEnter2D(Collision2D enemy)
+	{
+        if (enemy.gameObject.name == "Ghost" || enemy.gameObject.name == "Skeleton" || enemy.gameObject.name == "Gato" || enemy.gameObject.name == "Ghost Halo")
+		{
+            state = State.hurt;
+            Debug.Log("State is hurt");
+            if (spriteRenderer.flipX == false)
+            {
+                currentHealth -= 25;
+                rb.velocity = new Vector2(-20.0f, rb.velocity.y);
+                hurtTimer = 35.0f;
+            }
+
+            else
+            {
+                currentHealth -= 25;
+                state = State.hurt;
+                rb.velocity = new Vector2(20.0f, rb.velocity.y);
+                hurtTimer = 35.0f;
+            }
+        }
+
+        else if (enemy.gameObject.name == "Spike Collider" || enemy.gameObject.name == "Mountain Collider")
+		{
+            currentHealth = 0;
+            
+		}
+
+	}
+
+
+    void GameOver()
+	{
+        SceneManager.LoadScene("Game Over");
+
+    }
+
+    void OnDrawGizmosSelected()
+	{
+        if (attackPoint == null)
+		{
+            return;
+		}
+
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+	}
+}
+
+  
