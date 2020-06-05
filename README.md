@@ -31,3 +31,7 @@ All of these statements have been included in functions outside of the main upda
 In case you're wondering what the Hurttimer or attacktimer are, those are simply to keep track of time (this is NOT the most efficient method though) so that animation can be played and movement resumed. 
 
 And then there is a function which checks health to see if the player has died and GameOver() is called. 
+
+ERROR
+
+The code applied directly to your character will spring error messages. The purpose of uploading this file with explanation is to help you understand how to design a basic controller script for a 2d character in Unity. 
