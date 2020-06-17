@@ -32,6 +32,4 @@ In case you're wondering what the Hurttimer or attacktimer are, those are simply
 
 And then there is a function which checks health to see if the player has died and GameOver() is called. 
 
-ERROR
-
-The code applied directly to your character will spring error messages. The purpose of uploading this file with explanation is to help you understand how to design a basic controller script for a 2d character in Unity. 
+The purpose of uploading this file with explanation is to help you understand how to design a basic controller script for a 2d character in Unity. The code acts a skeleton for you to improve upon and impart your own character "feel". 
